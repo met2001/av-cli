@@ -4,6 +4,9 @@
 #include <time.h>
 #include <stdint.h>
 #include <math.h>
+#include "hashutil.h"
+
+#pragma comment(lib, "advapi32.lib");
 
 typedef struct _PE_HEADERS
 {
@@ -13,6 +16,13 @@ typedef struct _PE_HEADERS
     IMAGE_OPTIONAL_HEADER* optionalHeader;
     IMAGE_SECTION_HEADER* sectionHeaders;
 } PE_HEADERS;
+
+typedef struct _PE_DETAILS
+{
+    double fileEntroy;
+    char *hash;
+
+}PE_DETAILS;
 
 PE_HEADERS loadHeaders(char filepath[])
 {
@@ -122,6 +132,25 @@ double fileEntropy(char *filepath)
     return -entropy;
 }
 
+PE_DETAILS getDetails(char *filepath)
+{
+    static char hex[SHA256_HASH_SIZE];  // static: persists after return
+
+    PE_DETAILS details;
+    details.fileEntroy = fileEntropy(filepath); // also set here
+    if (sha256FileHex(filepath, hex))
+    {
+        details.hash = hex;
+    }
+    else
+    {
+        details.hash = "ERROR";
+    }
+
+    return details;
+}
+
+
 void main(int argc, char *argv[])
 {
     if (argc < 2)
@@ -146,5 +175,8 @@ void main(int argc, char *argv[])
     {
         printf("> Details: Unlikely to be malware based on entropy\n");
     }
+    PE_DETAILS details = getDetails(filepath);
+    printf("> SHA256: %s\n", details.hash);
+    printf("\n");
     system("pause");
 }

@@ -50,4 +50,4 @@ When a file is **denied**, its hash will be sent to an external server:
 
 **Build on Windows with GCC (MinGW):**
 ```bash
-gcc antivirus.c -o av-cli.exe
+gcc -o av-cli.exe antivirus.c hashutil.c -ladvapi32
