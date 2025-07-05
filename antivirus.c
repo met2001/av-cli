@@ -150,7 +150,6 @@ PE_DETAILS getDetails(char *filepath)
     return details;
 }
 
-
 void main(int argc, char *argv[])
 {
     if (argc < 2)
@@ -160,12 +159,20 @@ void main(int argc, char *argv[])
         exit(1);
     }
 
+    char cmd[512];
     char *filepath = argv[1];
 
+    printf("> Summary");
+
+    sprintf(cmd, "py C:\\Repos\\av-cli\\yara\\yara_scan.py \"%s\"", filepath); // EDIT PATH FOR YOUR USE CASE
+    system(cmd);
+
     PE_HEADERS headers = loadHeaders(filepath);
+
     printf("> Sections: %d\n", headers.fileHeader->NumberOfSections);
     printf("> Checksum: %d\n", headers.optionalHeader->CheckSum);
     printf("> Entropy: %f\n", fileEntropy(filepath));
+
     // Nearly 30% of all malicious samples have an entropy of 7.2 or more versus 1% of legitimate samples.  https://practicalsecurityanalytics.com/file-entropy/
     if (fileEntropy(filepath) > 7.2)
     {
@@ -176,6 +183,7 @@ void main(int argc, char *argv[])
         printf("> Details: Unlikely to be malware based on entropy\n");
     }
     PE_DETAILS details = getDetails(filepath);
+    
     printf("> SHA256: %s\n", details.hash);
     printf("\n");
     system("pause");
