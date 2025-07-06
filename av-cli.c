@@ -19,6 +19,9 @@ typedef struct _PE_HEADERS
 
 typedef struct _PE_DETAILS
 {
+    char *filename;
+    char *matches;
+    int file_size;
     double fileEntroy;
     char *hash;
 
@@ -134,10 +137,21 @@ double fileEntropy(char *filepath)
 
 PE_DETAILS getDetails(char *filepath)
 {
+    
     static char hex[SHA256_HASH_SIZE];  // static: persists after return
-
+    DWORD filesize;
+    WIN32_FILE_ATTRIBUTE_DATA fileInfo;
+    if (GetFileAttributes(filepath))
+    {
+        LARGE_INTEGER size;
+        size.HighPart = fileInfo.nFileSizeHigh;
+        size.LowPart = fileInfo.nFileSizeLow;
+        filesize = (DWORD)size.QuadPart;
+    }
     PE_DETAILS details;
     details.fileEntroy = fileEntropy(filepath); // also set here
+    details.filename = filepath;
+    details.file_size = filesize;
     if (sha256FileHex(filepath, hex))
     {
         details.hash = hex;
@@ -148,6 +162,13 @@ PE_DETAILS getDetails(char *filepath)
     }
 
     return details;
+}
+
+void vSavetoDatabase(PE_DETAILS details)
+{
+    char buffer[512];
+    sprintf(buffer, "py C:\\Repos\\av-cli\\database\\db_logic.py \"%s\" \"%s\" %.6f %d", details.filename, details.hash, details.fileEntroy, details.file_size);
+    system(buffer);
 }
 
 void main(int argc, char *argv[])
@@ -162,13 +183,13 @@ void main(int argc, char *argv[])
     char cmd[512];
     char *filepath = argv[1];
 
-    printf("> Summary");
+    printf("> Summary\n");
 
     sprintf(cmd, "py C:\\Repos\\av-cli\\yara\\yara_scan.py \"%s\"", filepath); // EDIT PATH FOR YOUR USE CASE
     system(cmd);
 
     PE_HEADERS headers = loadHeaders(filepath);
-
+    
     printf("> Sections: %d\n", headers.fileHeader->NumberOfSections);
     printf("> Checksum: %d\n", headers.optionalHeader->CheckSum);
     printf("> Entropy: %f\n", fileEntropy(filepath));
@@ -183,8 +204,8 @@ void main(int argc, char *argv[])
         printf("> Details: Unlikely to be malware based on entropy\n");
     }
     PE_DETAILS details = getDetails(filepath);
-    
+
     printf("> SHA256: %s\n", details.hash);
-    printf("\n");
+    vSavetoDatabase(details);
     system("pause");
 }
