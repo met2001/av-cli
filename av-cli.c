@@ -164,6 +164,50 @@ PE_DETAILS getDetails(char *filepath)
     return details;
 }
 
+void MoreOptions(PE_DETAILS details)
+{
+    Sleep(200);
+    printf("> [0] Search SHA256 in database\n");
+    Sleep(200);
+    printf("> [1] Remove File\n");
+    Sleep(200);
+    printf("> [2] Exit\n");
+    Sleep(200);
+    int choice;
+    printf("Option: ");
+    scanf("%d", &choice);
+    switch (choice)
+    {
+    case 0:
+    
+        char buffer[512];
+        sprintf(buffer, "py C:\\Repos\\av-cli\\API\\hash_scan.py %s", details.hash);
+        system(buffer);
+        system("pause");
+        break;
+    
+    case 1:
+        if (remove(details.filename) == 0)
+        {
+            printf("> File deteled\n");
+            system("pause");
+        }
+        else
+        {
+            printf("> Error deleting file\n");
+            system("pause");
+        }
+        break;
+    case 2:
+        exit(1);
+        break;
+    default:
+        printf("> Invalid choice\n");
+        system("pause");
+        break;
+    }
+}
+
 void vSavetoDatabase(PE_DETAILS details)
 {
     char buffer[512];
@@ -207,5 +251,5 @@ void main(int argc, char *argv[])
 
     printf("> SHA256: %s\n", details.hash);
     vSavetoDatabase(details);
-    system("pause");
+    MoreOptions(details);
 }
