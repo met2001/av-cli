@@ -25,7 +25,14 @@ typedef struct _PE_DETAILS
     double fileEntroy;
     char *hash;
 
-}PE_DETAILS;
+} PE_DETAILS;
+
+typedef struct _PACKER_INDICATORS
+{
+    int has_unusual_section_names;
+    int has_abnormal_section_count;
+
+} PACKER_INDICATORS;
 
 PE_HEADERS loadHeaders(char filepath[])
 {
@@ -95,6 +102,34 @@ PE_HEADERS loadHeaders(char filepath[])
         CloseHandle(hMapping);
         CloseHandle(hFile);
         exit(1);
+}
+
+PACKER_INDICATORS check_for_packers(PE_HEADERS details)
+{
+    PACKER_INDICATORS indicators;
+    int section_count = details.ntHeaders->FileHeader.NumberOfSections;
+    IMAGE_SECTION_HEADER* sections = (IMAGE_SECTION_HEADER*)((uint8_t*)&details.ntHeaders->OptionalHeader + details.ntHeaders->FileHeader.SizeOfOptionalHeader);
+
+    if (section_count < 2 || section_count > 20)
+    {
+        indicators.has_abnormal_section_count = 1;
+    }
+    for (int i = 0; i < section_count; i++)
+    {
+        char section_name[20] = {0};
+        memcpy(section_name, sections[i].Name, 8);
+        
+        if (strstr(section_name, "UPX") ||
+            strstr(section_name, "packed") ||
+            strstr(section_name, "themida") ||
+            strlen(section_name) == 0 ||
+            !isprint(section_name[0]))
+            {
+                indicators.has_unusual_section_names = 1;
+            }
+        
+    }
+    
 }
 
 double fileEntropy(char *filepath)
@@ -250,6 +285,24 @@ void main(int argc, char *argv[])
     PE_DETAILS details = getDetails(filepath);
 
     printf("> SHA256: %s\n", details.hash);
+    PACKER_INDICATORS indicators = check_for_packers(headers);
+    if (indicators.has_abnormal_section_count && indicators.has_unusual_section_names)
+    {
+        printf("> Likely packed\n");
+    }
+    else if (indicators.has_abnormal_section_count)
+    {
+        printf("> Unusual number of sections\n");
+    }
+    else if (indicators.has_unusual_section_names)
+    {
+        printf("> Unusual section names (likely using a common packer)\n");
+    }
+    else
+    {
+        printf("> Further analysis needed\n");
+    }
+
     vSavetoDatabase(details);
     MoreOptions(details);
 }
